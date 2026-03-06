@@ -1,0 +1,128 @@
+<svg viewBox="0 0 900 620" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <!-- Background -->
+  <rect width="900" height="620" fill="#0f172a" rx="12"/>
+
+  <!-- Title -->
+  <text x="450" y="38" text-anchor="middle" font-size="20" font-weight="700" fill="#f1f5f9">
+    E-commerce Inventory &amp; Pricing API — Architecture
+  </text>
+
+  <!-- ── CLIENT ── -->
+  <rect x="20" y="65" width="130" height="55" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+  <text x="85" y="88" text-anchor="middle" font-size="12" font-weight="600" fill="#94a3b8">CLIENT</text>
+  <text x="85" y="107" text-anchor="middle" font-size="11" fill="#64748b">HTTP / REST</text>
+
+  <!-- Arrow client → api -->
+  <line x1="150" y1="92" x2="215" y2="92" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ── API SERVER ── -->
+  <rect x="215" y="55" width="200" height="280" rx="10" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="315" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#93c5fd">API SERVER</text>
+  <text x="315" y="95" text-anchor="middle" font-size="10" fill="#60a5fa">Node.js / Express</text>
+
+  <!-- Layers inside API box -->
+  <rect x="230" y="105" width="170" height="35" rx="6" fill="#1d4ed8" opacity=".7"/>
+  <text x="315" y="127" text-anchor="middle" font-size="11" fill="#bfdbfe">Routes &amp; Controllers</text>
+
+  <rect x="230" y="150" width="170" height="35" rx="6" fill="#1d4ed8" opacity=".7"/>
+  <text x="315" y="172" text-anchor="middle" font-size="11" fill="#bfdbfe">Service Layer</text>
+
+  <rect x="230" y="195" width="170" height="35" rx="6" fill="#164e63" opacity=".9"/>
+  <text x="315" y="217" text-anchor="middle" font-size="11" fill="#7dd3fc">Pricing Engine</text>
+
+  <rect x="230" y="240" width="170" height="35" rx="6" fill="#1d4ed8" opacity=".7"/>
+  <text x="315" y="262" text-anchor="middle" font-size="11" fill="#bfdbfe">Repository Layer</text>
+
+  <rect x="230" y="285" width="170" height="35" rx="6" fill="#1d4ed8" opacity=".5"/>
+  <text x="315" y="307" text-anchor="middle" font-size="11" fill="#bfdbfe">Validation / Error Handler</text>
+
+  <!-- ── BACKGROUND WORKER ── -->
+  <rect x="215" y="360" width="200" height="90" rx="10" fill="#14532d" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="315" y="383" text-anchor="middle" font-size="13" font-weight="700" fill="#86efac">BACKGROUND WORKER</text>
+  <text x="315" y="400" text-anchor="middle" font-size="10" fill="#4ade80">BullMQ / Node.js</text>
+  <rect x="230" y="410" width="170" height="30" rx="5" fill="#166534" opacity=".8"/>
+  <text x="315" y="430" text-anchor="middle" font-size="11" fill="#bbf7d0">Reservation Expiry Job</text>
+
+  <!-- Arrow api ↓ worker (via Redis queue) -->
+  <line x1="315" y1="335" x2="315" y2="360" stroke="#475569" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+  <text x="320" y="352" font-size="9" fill="#64748b">queue</text>
+
+  <!-- ── POSTGRESQL ── -->
+  <rect x="490" y="55" width="180" height="220" rx="10" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="580" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#a5b4fc">POSTGRESQL</text>
+  <text x="580" y="95" text-anchor="middle" font-size="10" fill="#818cf8">Relational Database</text>
+
+  <g fill="#3730a3" opacity=".8">
+    <rect x="505" y="107" width="150" height="22" rx="4"/>
+    <rect x="505" y="136" width="150" height="22" rx="4"/>
+    <rect x="505" y="165" width="150" height="22" rx="4"/>
+    <rect x="505" y="194" width="150" height="22" rx="4"/>
+    <rect x="505" y="223" width="150" height="22" rx="4"/>
+    <rect x="505" y="252" width="150" height="22" rx="4"/>
+  </g>
+  <text x="580" y="123" text-anchor="middle" font-size="10" fill="#c7d2fe">products / categories</text>
+  <text x="580" y="152" text-anchor="middle" font-size="10" fill="#c7d2fe">variants (FOR UPDATE)</text>
+  <text x="580" y="181" text-anchor="middle" font-size="10" fill="#c7d2fe">pricing_rules</text>
+  <text x="580" y="210" text-anchor="middle" font-size="10" fill="#c7d2fe">carts / cart_items</text>
+  <text x="580" y="239" text-anchor="middle" font-size="10" fill="#c7d2fe">inventory_reservations</text>
+  <text x="580" y="268" text-anchor="middle" font-size="10" fill="#c7d2fe">orders / order_items</text>
+
+  <!-- Arrow api → postgres -->
+  <line x1="415" y1="170" x2="490" y2="170" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <text x="450" y="163" text-anchor="middle" font-size="9" fill="#818cf8">SQL + Transactions</text>
+
+  <!-- Arrow worker → postgres -->
+  <line x1="415" y1="405" x2="490" y2="290" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr3)"/>
+
+  <!-- ── REDIS ── -->
+  <rect x="490" y="310" width="180" height="100" rx="10" fill="#1a0a0a" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="580" y="333" text-anchor="middle" font-size="13" font-weight="700" fill="#fca5a5">REDIS</text>
+  <text x="580" y="350" text-anchor="middle" font-size="10" fill="#f87171">Cache &amp; Job Queue</text>
+  <rect x="505" y="360" width="150" height="22" rx="4" fill="#7f1d1d" opacity=".7"/>
+  <text x="580" y="375" text-anchor="middle" font-size="10" fill="#fecaca">BullMQ Job Queue</text>
+  <rect x="505" y="387" width="150" height="15" rx="4" fill="#7f1d1d" opacity=".4"/>
+  <text x="580" y="398" text-anchor="middle" font-size="9" fill="#fca5a5">Repeatable Jobs</text>
+
+  <!-- Arrow api → redis -->
+  <line x1="415" y1="370" x2="490" y2="360" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arr4)"/>
+
+  <!-- Arrow worker ← redis -->
+  <line x1="490" y1="380" x2="415" y2="405" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr4)"/>
+
+  <!-- ── FLOW LEGEND ── -->
+  <rect x="20" y="480" width="860" height="120" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="450" y="502" text-anchor="middle" font-size="12" font-weight="700" fill="#94a3b8">KEY FLOWS</text>
+
+  <!-- flow boxes -->
+  <rect x="35" y="512" width="200" height="70" rx="6" fill="#0f172a"/>
+  <text x="135" y="530" text-anchor="middle" font-size="10" font-weight="700" fill="#3b82f6">Add to Cart Flow</text>
+  <text x="135" y="545" text-anchor="middle" font-size="9" fill="#64748b">1. Lock variant (FOR UPDATE)</text>
+  <text x="135" y="558" text-anchor="middle" font-size="9" fill="#64748b">2. Check available qty</text>
+  <text x="135" y="571" text-anchor="middle" font-size="9" fill="#64748b">3. Reserve + snapshot price</text>
+
+  <rect x="250" y="512" width="200" height="70" rx="6" fill="#0f172a"/>
+  <text x="350" y="530" text-anchor="middle" font-size="10" font-weight="700" fill="#22c55e">Reservation Expiry Flow</text>
+  <text x="350" y="545" text-anchor="middle" font-size="9" fill="#64748b">1. Worker polls every 60s</text>
+  <text x="350" y="558" text-anchor="middle" font-size="9" fill="#64748b">2. SELECT expired FOR UPDATE SKIP LOCKED</text>
+  <text x="350" y="571" text-anchor="middle" font-size="9" fill="#64748b">3. Decrement reserved_qty</text>
+
+  <rect x="465" y="512" width="200" height="70" rx="6" fill="#0f172a"/>
+  <text x="565" y="530" text-anchor="middle" font-size="10" font-weight="700" fill="#a855f7">Checkout Flow</text>
+  <text x="565" y="545" text-anchor="middle" font-size="9" fill="#64748b">1. BEGIN transaction</text>
+  <text x="565" y="558" text-anchor="middle" font-size="9" fill="#64748b">2. Convert reservations → sold</text>
+  <text x="565" y="571" text-anchor="middle" font-size="9" fill="#64748b">3. Deduct stock, create order</text>
+
+  <rect x="680" y="512" width="185" height="70" rx="6" fill="#0f172a"/>
+  <text x="772" y="530" text-anchor="middle" font-size="10" font-weight="700" fill="#f59e0b">Pricing Flow</text>
+  <text x="772" y="545" text-anchor="middle" font-size="9" fill="#64748b">Priority: seasonal(10)</text>
+  <text x="772" y="558" text-anchor="middle" font-size="9" fill="#64748b">→ bulk(20) → user_tier(30)</text>
+  <text x="772" y="571" text-anchor="middle" font-size="9" fill="#64748b">→ promo_code(40)</text>
+
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arr"  markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#475569"/></marker>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6366f1"/></marker>
+    <marker id="arr3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#22c55e"/></marker>
+    <marker id="arr4" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#ef4444"/></marker>
+  </defs>
+</svg>

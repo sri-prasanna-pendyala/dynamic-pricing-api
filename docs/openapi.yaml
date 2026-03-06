@@ -1,0 +1,626 @@
+openapi: 3.0.3
+info:
+  title: E-Commerce Inventory & Dynamic Pricing API
+  version: 1.0.0
+  description: |
+    A sophisticated backend service handling real-time inventory tracking and dynamic pricing.
+    
+    ## Key Features
+    - Product & variant management with hierarchical categories
+    - Dynamic pricing engine (bulk, seasonal, user-tier, promo-code)
+    - Inventory reservation with 15-minute TTL
+    - Concurrency-safe stock management via `SELECT ... FOR UPDATE`
+    - Background job for expired reservation cleanup
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local development
+
+tags:
+  - name: Health
+  - name: Categories
+  - name: Products
+  - name: Pricing Rules
+  - name: Cart
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+
+  /categories:
+    get:
+      tags: [Categories]
+      summary: List all categories
+      responses:
+        '200':
+          description: List of categories
+    post:
+      tags: [Categories]
+      summary: Create a category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreate'
+      responses:
+        '201':
+          description: Created category
+
+  /categories/tree:
+    get:
+      tags: [Categories]
+      summary: Get hierarchical category tree
+      responses:
+        '200':
+          description: Category tree
+
+  /categories/{id}:
+    get:
+      tags: [Categories]
+      summary: Get category by ID
+      parameters:
+        - $ref: '#/components/parameters/UuidId'
+      responses:
+        '200':
+          description: Category
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Categories]
+      summary: Update category
+      parameters:
+        - $ref: '#/components/parameters/UuidId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreate'
+      responses:
+        '200':
+          description: Updated category
+    delete:
+      tags: [Categories]
+      summary: Delete category
+      parameters:
+        - $ref: '#/components/parameters/UuidId'
+      responses:
+        '200':
+          description: Deleted
+
+  /products:
+    get:
+      tags: [Products]
+      summary: List products
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, archived, draft]
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of products
+    post:
+      tags: [Products]
+      summary: Create product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '201':
+          description: Created product
+
+  /products/{id}:
+    get:
+      tags: [Products]
+      summary: Get product with variants
+      parameters:
+        - $ref: '#/components/parameters/UuidId'
+      responses:
+        '200':
+          description: Product with variants
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Products]
+      summary: Update product
+      parameters:
+        - $ref: '#/components/parameters/UuidId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '200':
+          description: Updated product
+    delete:
+      tags: [Products]
+      summary: Delete product
+      parameters:
+        - $ref: '#/components/parameters/UuidId'
+      responses:
+        '200':
+          description: Deleted
+
+  /products/{id}/price:
+    get:
+      tags: [Products]
+      summary: Calculate dynamic price
+      description: |
+        Returns the final price for a product with applied discount breakdown.
+        
+        **Rule application order:** seasonal → promo_code → bulk → user_tier
+      parameters:
+        - $ref: '#/components/parameters/UuidId'
+        - name: quantity
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: user_tier
+          in: query
+          schema:
+            type: string
+            enum: [standard, silver, gold]
+        - name: promo_code
+          in: query
+          schema:
+            type: string
+        - name: variant_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Price calculation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceResult'
+
+  /products/{productId}/variants:
+    get:
+      tags: [Products]
+      summary: List variants for a product
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of variants
+    post:
+      tags: [Products]
+      summary: Create variant
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VariantCreate'
+      responses:
+        '201':
+          description: Created variant
+
+  /products/{productId}/variants/{id}:
+    get:
+      tags: [Products]
+      summary: Get variant
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/UuidId'
+      responses:
+        '200':
+          description: Variant
+    patch:
+      tags: [Products]
+      summary: Update variant
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/UuidId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VariantCreate'
+      responses:
+        '200':
+          description: Updated variant
+    delete:
+      tags: [Products]
+      summary: Delete variant
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/UuidId'
+      responses:
+        '200':
+          description: Deleted
+
+  /pricing-rules:
+    get:
+      tags: [Pricing Rules]
+      summary: List all pricing rules
+      responses:
+        '200':
+          description: List of pricing rules
+    post:
+      tags: [Pricing Rules]
+      summary: Create pricing rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PricingRuleCreate'
+      responses:
+        '201':
+          description: Created rule
+
+  /pricing-rules/{id}:
+    get:
+      tags: [Pricing Rules]
+      summary: Get pricing rule
+      parameters:
+        - $ref: '#/components/parameters/UuidId'
+      responses:
+        '200':
+          description: Pricing rule
+    patch:
+      tags: [Pricing Rules]
+      summary: Update pricing rule
+      parameters:
+        - $ref: '#/components/parameters/UuidId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PricingRuleCreate'
+      responses:
+        '200':
+          description: Updated rule
+    delete:
+      tags: [Pricing Rules]
+      summary: Delete pricing rule
+      parameters:
+        - $ref: '#/components/parameters/UuidId'
+      responses:
+        '200':
+          description: Deleted
+
+  /carts:
+    post:
+      tags: [Cart]
+      summary: Create a new cart
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                user_tier:
+                  type: string
+                  enum: [standard, silver, gold]
+                  default: standard
+      responses:
+        '201':
+          description: Created cart
+
+  /carts/{cartId}:
+    get:
+      tags: [Cart]
+      summary: Get cart with items
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+      responses:
+        '200':
+          description: Cart with items
+
+  /carts/{cartId}/items:
+    post:
+      tags: [Cart]
+      summary: Add item to cart
+      description: |
+        Adds a variant to the cart. This:
+        1. Calculates and snapshots the price at this moment
+        2. Creates an inventory reservation (15-min TTL)
+        3. Prevents overselling via `SELECT ... FOR UPDATE`
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCartItem'
+      responses:
+        '201':
+          description: Item added
+        '409':
+          description: Insufficient stock
+
+  /carts/{cartId}/items/{variantId}:
+    patch:
+      tags: [Cart]
+      summary: Update cart item quantity
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+        - name: variantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          description: Updated item
+    delete:
+      tags: [Cart]
+      summary: Remove item from cart
+      description: Removes item and releases its inventory reservation
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+        - name: variantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Removed
+
+  /carts/{cartId}/checkout:
+    post:
+      tags: [Cart]
+      summary: Checkout cart
+      description: |
+        Atomically converts all inventory reservations to permanent stock deductions.
+        Creates an order record and marks the cart as checked_out.
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+      responses:
+        '200':
+          description: Order created
+        '400':
+          description: Cart empty or already checked out
+        '409':
+          description: Insufficient stock at checkout time
+
+components:
+  parameters:
+    UuidId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CartId:
+      name: cartId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+
+    CategoryCreate:
+      type: object
+      required: [name, slug]
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+
+    ProductCreate:
+      type: object
+      required: [name, base_price]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        base_price:
+          type: number
+          minimum: 0
+        status:
+          type: string
+          enum: [active, archived, draft]
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+
+    VariantCreate:
+      type: object
+      required: [sku]
+      properties:
+        sku:
+          type: string
+        attributes:
+          type: object
+          example: {"size": "L", "color": "Red"}
+        price_adjustment:
+          type: number
+          default: 0
+        stock_quantity:
+          type: integer
+          minimum: 0
+        is_active:
+          type: boolean
+
+    PricingRuleCreate:
+      type: object
+      required: [name, rule_type, discount_value]
+      properties:
+        name:
+          type: string
+        rule_type:
+          type: string
+          enum: [bulk, user_tier, seasonal, promo_code]
+        discount_value:
+          type: number
+          minimum: 0
+        discount_type:
+          type: string
+          enum: [percentage, fixed]
+          default: percentage
+        config:
+          type: object
+          description: |
+            Rule-specific config:
+            - bulk: `{"min_quantity": 10}`
+            - user_tier: `{"tier": "gold"}`
+            - promo_code: `{"code": "SAVE20"}`
+            - seasonal: `{}`
+        product_id:
+          type: string
+          format: uuid
+          nullable: true
+        priority:
+          type: integer
+          default: 0
+        valid_from:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+        is_active:
+          type: boolean
+
+    AddCartItem:
+      type: object
+      required: [variant_id, quantity]
+      properties:
+        variant_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+        promo_code:
+          type: string
+
+    PriceResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            product_id:
+              type: string
+            product_name:
+              type: string
+            quantity:
+              type: integer
+            originalPrice:
+              type: number
+              description: Base price + variant adjustment, before discounts
+            unitPrice:
+              type: number
+              description: Final price per unit after all discounts
+            totalPrice:
+              type: number
+              description: unitPrice × quantity
+            appliedDiscounts:
+              type: array
+              items:
+                type: object
+                properties:
+                  rule_name:
+                    type: string
+                  rule_type:
+                    type: string
+                  discount_amount:
+                    type: number
+                  price_after:
+                    type: number
