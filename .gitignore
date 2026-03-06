@@ -1,0 +1,8 @@
+node_modules/
+.env
+*.log
+coverage/
+dist/
+.DS_Store
+
+curl -X POST http://localhost:3000/api/v1/carts -H "Content-Type: application/json" -d "{\"user_id\":\"user123\",\"user_tier\":\"gold\"}"
